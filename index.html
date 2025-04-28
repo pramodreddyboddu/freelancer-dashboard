@@ -10,7 +10,45 @@
   <script src="https://unpkg.com/react-router-dom@6.26.1/dist/umd/react-router-dom.development.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #6b7280 0%, #1f2937 100%);
+      color: #333;
+    }
+    .navbar {
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .navbar a, .navbar button {
+      transition: all 0.3s ease;
+    }
+    .navbar a:hover, .navbar button:hover {
+      transform: translateY(-2px);
+    }
+    .card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+    }
+    .btn {
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+    .btn:hover {
+      transform: scale(1.05);
+    }
+    .avatar {
+      background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+      color: white;
+      font-weight: 600;
+    }
+  </style>
 </head>
 <body>
   <div id="root"></div>
@@ -30,6 +68,7 @@
     };
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const auth = firebase.auth();
 
     // Mock AI pitch generator
     const generateAIPitch = (skills, gigDetails) => {
@@ -39,11 +78,32 @@
     // Main App Component with Routing
     function App() {
       const [user, setUser] = useState(null);
-      const [isSignUp, setIsSignUp] = useState(true);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+          if (firebaseUser) {
+            setUser({
+              email: firebaseUser.email,
+              name: firebaseUser.displayName || firebaseUser.email.split("@")[0],
+              skills: [],
+              gigs: []
+            });
+          } else {
+            setUser(null);
+          }
+          setLoading(false);
+        });
+        return () => unsubscribe();
+      }, []);
+
+      if (loading) {
+        return <div className="text-center mt-10 text-white text-xl">Loading...</div>;
+      }
 
       return (
         <BrowserRouter>
-          <div className="min-h-screen bg-gray-100">
+          <div className="min-h-screen">
             {user ? (
               <Routes>
                 <Route path="/" element={<Dashboard user={user} setUser={setUser} />} />
@@ -52,7 +112,7 @@
                 <Route path="/payments" element={<Payments user={user} />} />
               </Routes>
             ) : (
-              <AuthForm isSignUp={isSignUp} setIsSignUp={setIsSignUp} setUser={setUser} />
+              <AuthForm setUser={setUser} />
             )}
           </div>
         </BrowserRouter>
@@ -60,73 +120,115 @@
     }
 
     // Authentication Form Component
-    function AuthForm({ isSignUp, setIsSignUp, setUser }) {
+    function AuthForm({ setUser }) {
+      const [isSignUp, setIsSignUp] = useState(false);
       const [email, setEmail] = useState("");
       const [password, setPassword] = useState("");
-      const [name, setName] = useState("");
+OA      const [name, setName] = useState("");
+OA      const [error, setError] = useState("");
+OA
+OA      const handleSignUp = () => {
+        auth.createUserWithEmailAndPassword(email, password)
+OA          .then((userCredential) => {
+            return userCredential.user.updateProfile({
+OA              displayName: name
+            });
+OA          })
+OAOA          .then(() => {
+            setError("");
+OAOA          })
+OA          .catch((error) => {
+OAOAOAOA            setError(error.message);
+OAOA          });
+OAOAOA      };
+
+OA      const handleSignIn = () => {
+OAOA        auth.signInWithEmailAndPassword(email, password)
+          .then(() => {
+OA            setError("");
+OA          })
+          .catch((error) => {
+            setError(error.message);
+          });
+      };
 
       const handleSubmit = (e) => {
         e.preventDefault();
-        setUser({ email, name: isSignUp ? name : email.split("@")[0], skills: [], gigs: [] });
+        if (isSignUp) {
+          handleSignUp();
+        } else {
+          handleSignIn();
+        }
       };
 
       return (
-        <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
-          <h2 className="text-2xl font-bold mb-4">{isSignUp ? "Sign Up" : "Sign In"}</h2>
-          <form onSubmit={handleSubmit}>
-            {isSignUp && (
-              <div className="mb-4">
-                <label className="block text-gray-700">Name</label>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="max-w-md w-full mx-auto p-8 bg-white rounded-2xl shadow-xl card">
+            <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">
+              {isSignUp ? "Join FreelanceFlow AI" : "Welcome Back"}
+            </h2>
+            {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
+            <form onSubmit={handleSubmit}>
+              {isSignUp && (
+                <div className="mb-6">
+                  <label className="block text-gray-700 font-medium mb-2">
+                    <i className="fas fa-user mr-2"></i>Name
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              )}
+              <div className="mb-6">
+                <label className="block text-gray-700 font-medium mb-2">
+                  <i className="fas fa-envelope mr-2"></i>Email
+                </label>
                 <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full p-2 border rounded"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
-            )}
-            <div className="mb-4">
-              <label className="block text-gray-700">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-            >
-              {isSignUp ? "Sign Up" : "Sign In"}
-            </button>
-          </form>
-          <p className="mt-4 text-center">
-            {isSignUp ? "Already have an account?" : "Don't have an account?"}
-            <button
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-blue-500 ml-1 hover:underline"
-            >
-              {isSignUp ? "Sign In" : "Sign Up"}
-            </button>
-          </p>
+              <div className="mb-6">
+                <label className="block text-gray-700 font-medium mb-2">
+                  <i className="fas fa-lock mr-2"></i>Password
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white p-3 rounded-lg btn hover:from-blue-600 hover:to-purple-700"
+              >
+                {isSignUp ? "Sign Up" : "Sign In"}
+              </button>
+            </form>
+            <p className="mt-6 text-center text-gray-600">
+              {isSignUp ? "Already have an account?" : "Don't have an account?"}
+              <button
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-blue-500 ml-2 hover:underline focus:outline-none"
+              >
+                {isSignUp ? "Sign In" : "Sign Up"}
+              </button>
+            </p>
+          </div>
         </div>
       );
     }
 
-    // Dashboard Component (Updated with Firestore for Portfolio)
+    // Dashboard Component
     function Dashboard({ user, setUser }) {
       const [skills, setSkills] = useState(user.skills);
       const [newSkill, setNewSkill] = useState("");
@@ -137,7 +239,6 @@
       const [newPortfolioItem, setNewPortfolioItem] = useState({ title: "", description: "" });
 
       useEffect(() => {
-        // Fetch portfolio items from Firestore
         db.collection("portfolios")
           .where("userEmail", "==", user.email)
           .get()
@@ -198,174 +299,192 @@
       };
 
       const logout = () => {
-        setUser(null);
+        auth.signOut().then(() => {
+          setUser(null);
+        });
       };
 
       return (
-        <div className="max-w-4xl mx-auto p-6">
+        <div className="min-h-screen">
           {/* Navigation Bar */}
-          <nav className="bg-blue-500 p-4 mb-6 rounded-lg">
-            <ul className="flex space-x-6 text-white">
-              <li><Link to="/" className="hover:underline">Dashboard</Link></li>
-              <li><Link to="/gigs" className="hover:underline">Gig Matches</Link></li>
-              <li><Link to="/messages" className="hover:underline">Messages</Link></li>
-              <li><Link to="/payments" className="hover:underline">Payments</Link></li>
-              <li>
-                <button
-                  onClick={logout}
-                  className="bg-red-500 px-4 py-2 rounded hover:bg-red-600"
-                >
-                  Logout
-                </button>
-              </li>
-            </ul>
+          <nav className="navbar fixed top-0 left-0 w-full p-4 z-10">
+            <div className="max-w-6xl mx-auto flex justify-between items-center">
+              <h1 className="text-2xl font-bold text-white">FreelanceFlow AI</h1>
+              <ul className="flex space-x-6 text-white">
+                <li><Link to="/" className="hover:text-yellow-300"><i className="fas fa-home mr-1"></i>Dashboard</Link></li>
+                <li><Link to="/gigs" className="hover:text-yellow-300"><i className="fas fa-briefcase mr-1"></i>Gig Matches</Link></li>
+                <li><Link to="/messages" className="hover:text-yellow-300"><i className="fas fa-envelope mr-1"></i>Messages</Link></li>
+                <li><Link to="/payments" className="hover:text-yellow-300"><i className="fas fa-wallet mr-1"></i>Payments</Link></li>
+                <li>
+                  <button
+                    onClick={logout}
+                    className="bg-red-500 px-4 py-2 rounded-lg hover:bg-red-600"
+                  >
+                    <i className="fas fa-sign-out-alt mr-1"></i>Logout
+                  </button>
+                </li>
+              </ul>
+            </div>
           </nav>
 
-          <h1 className="text-3xl font-bold mb-6">Welcome to FreelanceFlow AI, {user.name}</h1>
-
-          {/* Skills Section */}
-          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-            <h2 className="text-xl font-semibold mb-4">Your Skills</h2>
-            <div className="flex mb-4">
-              <input
-                type="text"
-                value={newSkill}
-                onChange={(e) => setNewSkill(e.target.value)}
-                placeholder="e.g., Web Development"
-                className="flex-1 p-2 border rounded-l"
-              />
-              <button
-                onClick={addSkill}
-                className="bg-blue-500 text-white px-4 py-2 rounded-r hover:bg-blue-600"
-              >
-                Add
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {skills.map((skill, index) => (
-                <span
-                  key={index}
-                  className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full"
-                >
-                  {skill}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Gig Details Section */}
-          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-            <h2 className="text-xl font-semibold mb-4">Add Gig Details</h2>
-            <div className="grid grid-cols-2 gap-4 mb-4">
+          {/* Main Content */}
+          <div className="max-w-6xl mx-auto pt-24 p-6">
+            {/* Profile Card */}
+            <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 flex items-center space-x-6 card">
+              <div className="w-20 h-20 rounded-full avatar flex items-center justify-center text-2xl">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
               <div>
-                <label className="block text-gray-700">Project Type</label>
+                <h1 className="text-3xl font-bold text-gray-800">Welcome, {user.name}</h1>
+                <p className="text-gray-600 mt-1"><i className="fas fa-envelope mr-2"></i>{user.email}</p>
+                <p className="text-gray-600"><i className="fas fa-briefcase mr-2"></i>{gigs.length} Gigs Completed</p>
+              </div>
+            </div>
+
+            {/* Skills Section */}
+            <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 card">
+              <h2 className="text-2xl font-semibold mb-4 text-gray-800"><i className="fas fa-star mr-2 text-yellow-500"></i>Your Skills</h2>
+              <div className="flex mb-4">
                 <input
                   type="text"
-                  value={gigDetails.projectType}
-                  onChange={(e) =>
-                    setGigDetails({ ...gigDetails, projectType: e.target.value })
-                  }
-                  placeholder="e.g., Website Design"
-                  className="w-full p-2 border rounded"
+                  value={newSkill}
+                  onChange={(e) => setNewSkill(e.target.value)}
+                  placeholder="e.g., Web Development"
+                  className="flex-1 p-3 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                <button
+                  onClick={addSkill}
+                  className="bg-blue-500 text-white px-4 py-3 rounded-r-lg btn hover:bg-blue-600"
+                >
+                  <i className="fas fa-plus mr-2"></i>Add
+                </button>
               </div>
-              <div>
-                <label className="block text-gray-700">Budget ($)</label>
+              <div className="flex flex-wrap gap-3">
+                {skills.map((skill, index) => (
+                  <span
+                    key={index}
+                    className="bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium transition-all hover:bg-blue-200"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Gig Details Section */}
+            <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 card">
+              <h2 className="text-2xl font-semibold mb-4 text-gray-800"><i className="fas fa-tasks mr-2 text-green-500"></i>Add Gig Details</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">Project Type</label>
+                  <input
+                    type="text"
+                    value={gigDetails.projectType}
+                    onChange={(e) =>
+                      setGigDetails({ ...gigDetails, projectType: e.target.value })
+                    }
+                    placeholder="e.g., Website Design"
+                    className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">Budget ($)</label>
+                  <input
+                    type="number"
+                    value={gigDetails.budget}
+                    onChange={(e) =>
+                      setGigDetails({ ...gigDetails, budget: e.target.value })
+                    }
+                    placeholder="e.g., 500"
+                    className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={generatePitch}
+                className="bg-green-500 text-white px-4 py-3 rounded-lg btn hover:bg-green-600"
+              >
+                <i className="fas fa-robot mr-2"></i>Generate AI Pitch
+              </button>
+            </div>
+
+            {/* Pitch Section */}
+            {pitch && (
+              <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 card">
+                <h2 className="text-2xl font-semibold mb-4 text-gray-800"><i className="fas fa-file-alt mr-2 text-purple-500"></i>Generated Pitch</h2>
+                <p className="text-gray-700 mb-4">{pitch}</p>
+                <button
+                  onClick={approvePitch}
+                  className="bg-purple-500 text-white px-4 py-3 rounded-lg btn hover:bg-purple-600"
+                >
+                  <i className="fas fa-check mr-2"></i>Approve & Save Pitch
+                </button>
+              </div>
+            )}
+
+            {/* Saved Gigs Section */}
+            <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 card">
+              <h2 className="text-2xl font-semibold mb-4 text-gray-800"><i className="fas fa-briefcase mr-2 text-blue-500"></i>Your Gigs</h2>
+              {gigs.length ? (
+                gigs.map((gig, index) => (
+                  <div key={index} className="border-b py-4">
+                    <p className="text-gray-800"><strong>Project Type:</strong> {gig.projectType}</p>
+                    <p className="text-gray-800"><strong>Budget:</strong> ${gig.budget}</p>
+                    <p className="text-gray-800"><strong>Pitch:</strong> {gig.pitch}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-600">No gigs saved yet.</p>
+              )}
+            </div>
+
+            {/* Portfolio Section */}
+            <div className="bg-white rounded-2xl shadow-xl p-6 card">
+              <h2 className="text-2xl font-semibold mb-4 text-gray-800"><i className="fas fa-folder-open mr-2 text-indigo-500"></i>Your Portfolio</h2>
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">Project Title</label>
                 <input
-                  type="number"
-                  value={gigDetails.budget}
+                  type="text"
+                  value={newPortfolioItem.title}
                   onChange={(e) =>
-                    setGigDetails({ ...gigDetails, budget: e.target.value })
+                    setNewPortfolioItem({ ...newPortfolioItem, title: e.target.value })
                   }
-                  placeholder="e.g., 500"
-                  className="w-full p-2 border rounded"
+                  placeholder="e.g., E-commerce Website"
+                  className="w-full p-3 border rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                <label className="block text-gray-700 font-medium mb-2">Description</label>
+                <textarea
+                  value={newPortfolioItem.description}
+                  onChange={(e) =>
+                    setNewPortfolioItem({ ...newPortfolioItem, description: e.target.value })
+                  }
+                  placeholder="e.g., Built a responsive e-commerce site with React and Firebase."
+                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={addPortfolioItem}
+                  className="mt-2 bg-blue-500 text-white px-4 py-3 rounded-lg btn hover:bg-blue-600"
+                >
+                  <i className="fas fa-plus mr-2"></i>Add to Portfolio
+                </button>
               </div>
+              {portfolio.length ? (
+                portfolio.map((item, index) => (
+                  <div key={index} className="border-b py-4">
+                    <p className="text-gray-800"><strong>Title:</strong> {item.title}</p>
+                    <p className="text-gray-800"><strong>Description:</strong> {item.description}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-600">No portfolio items yet.</p>
+              )}
             </div>
-            <button
-              onClick={generatePitch}
-              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-            >
-              Generate AI Pitch
-            </button>
-          </div>
-
-          {/* Pitch Section */}
-          {pitch && (
-            <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-              <h2 className="text-xl font-semibold mb-4">Generated Pitch</h2>
-              <p className="text-gray-700 mb-4">{pitch}</p>
-              <button
-                onClick={approvePitch}
-                className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
-              >
-                Approve & Save Pitch
-              </button>
-            </div>
-          )}
-
-          {/* Saved Gigs Section */}
-          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-            <h2 className="text-xl font-semibold mb-4">Your Gigs</h2>
-            {gigs.length ? (
-              gigs.map((gig, index) => (
-                <div key={index} className="border-b py-4">
-                  <p><strong>Project Type:</strong> {gig.projectType}</p>
-                  <p><strong>Budget:</strong> ${gig.budget}</p>
-                  <p><strong>Pitch:</strong> {gig.pitch}</p>
-                </div>
-              ))
-            ) : (
-              <p>No gigs saved yet.</p>
-            )}
-          </div>
-
-          {/* Portfolio Section */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4">Your Portfolio</h2>
-            <div className="mb-4">
-              <label className="block text-gray-700">Project Title</label>
-              <input
-                type="text"
-                value={newPortfolioItem.title}
-                onChange={(e) =>
-                  setNewPortfolioItem({ ...newPortfolioItem, title: e.target.value })
-                }
-                placeholder="e.g., E-commerce Website"
-                className="w-full p-2 border rounded mb-2"
-              />
-              <label className="block text-gray-700">Description</label>
-              <textarea
-                value={newPortfolioItem.description}
-                onChange={(e) =>
-                  setNewPortfolioItem({ ...newPortfolioItem, description: e.target.value })
-                }
-                placeholder="e.g., Built a responsive e-commerce site with React and Firebase."
-                className="w-full p-2 border rounded"
-              />
-              <button
-                onClick={addPortfolioItem}
-                className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              >
-                Add to Portfolio
-              </button>
-            </div>
-            {portfolio.length ? (
-              portfolio.map((item, index) => (
-                <div key={index} className="border-b py-4">
-                  <p><strong>Title:</strong> {item.title}</p>
-                  <p><strong>Description:</strong> {item.description}</p>
-                </div>
-              ))
-            ) : (
-              <p>No portfolio items yet.</p>
-            )}
           </div>
         </div>
       );
     }
 
-    // Gig Matches Component (Using Firestore)
+    // Gig Matches Component
     function GigMatches({ user }) {
       const [availableGigs, setAvailableGigs] = useState([]);
 
@@ -385,37 +504,42 @@
       }, [user.skills]);
 
       return (
-        <div className="max-w-4xl mx-auto p-6">
-          <nav className="bg-blue-500 p-4 mb-6 rounded-lg">
-            <ul className="flex space-x-6 text-white">
-              <li><Link to="/" className="hover:underline">Dashboard</Link></li>
-              <li><Link to="/gigs" className="hover:underline">Gig Matches</Link></li>
-              <li><Link to="/messages" className="hover:underline">Messages</Link></li>
-              <li><Link to="/payments" className="hover:underline">Payments</Link></li>
-            </ul>
+        <div className="min-h-screen">
+          <nav className="navbar fixed top-0 left-0 w-full p-4 z-10">
+            <div className="max-w-6xl mx-auto flex justify-between items-center">
+              <h1 className="text-2xl font-bold text-white">FreelanceFlow AI</h1>
+              <ul className="flex space-x-6 text-white">
+                <li><Link to="/" className="hover:text-yellow-300"><i className="fas fa-home mr-1"></i>Dashboard</Link></li>
+                <li><Link to="/gigs" className="hover:text-yellow-300"><i className="fas fa-briefcase mr-1"></i>Gig Matches</Link></li>
+                <li><Link to="/messages" className="hover:text-yellow-300"><i className="fas fa-envelope mr-1"></i>Messages</Link></li>
+                <li><Link to="/payments" className="hover:text-yellow-300"><i className="fas fa-wallet mr-1"></i>Payments</Link></li>
+              </ul>
+            </div>
           </nav>
-          <h1 className="text-3xl font-bold mb-6">Gig Matches</h1>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            {availableGigs.length ? (
-              availableGigs.map((gig) => (
-                <div key={gig.id} className="border-b py-4">
-                  <p><strong>Title:</strong> {gig.title}</p>
-                  <p><strong>Budget:</strong> ${gig.budget}</p>
-                  <p><strong>Required Skills:</strong> {gig.skills.join(", ")}</p>
-                  <button className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                    Apply
-                  </button>
-                </div>
-              ))
-            ) : (
-              <p>No matching gigs found. Add more skills to improve your matches!</p>
-            )}
+          <div className="max-w-6xl mx-auto pt-24 p-6">
+            <h1 className="text-3xl font-bold mb-8 text-white">Gig Matches</h1>
+            <div className="bg-white rounded-2xl shadow-xl p-6 card">
+              {availableGigs.length ? (
+                availableGigs.map((gig) => (
+                  <div key={gig.id} className="border-b py-4">
+                    <p className="text-gray-800"><strong>Title:</strong> {gig.title}</p>
+                    <p className="text-gray-800"><strong>Budget:</strong> ${gig.budget}</p>
+                    <p className="text-gray-800"><strong>Required Skills:</strong> {gig.skills.join(", ")}</p>
+                    <button className="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg btn hover:bg-blue-600">
+                      <i className="fas fa-paper-plane mr-2"></i>Apply
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-600">No matching gigs found. Add more skills to improve your matches!</p>
+              )}
+            </div>
           </div>
         </div>
       );
     }
 
-    // Messages Component (Using Firestore)
+    // Messages Component
     function Messages({ user }) {
       const [messages, setMessages] = useState([]);
       const [newMessage, setNewMessage] = useState("");
@@ -440,7 +564,7 @@
         if (newMessage) {
           const message = {
             from: user.email,
-            to: "Client A", // Mock recipient (in a real app, this would be dynamic)
+            to: "Client A",
             text: newMessage,
             timestamp: new Date().toISOString()
           };
@@ -457,48 +581,53 @@
       };
 
       return (
-        <div className="max-w-4xl mx-auto p-6">
-          <nav className="bg-blue-500 p-4 mb-6 rounded-lg">
-            <ul className="flex space-x-6 text-white">
-              <li><Link to="/" className="hover:underline">Dashboard</Link></li>
-              <li><Link to="/gigs" className="hover:underline">Gig Matches</Link></li>
-              <li><Link to="/messages" className="hover:underline">Messages</Link></li>
-              <li><Link to="/payments" className="hover:underline">Payments</Link></li>
-            </ul>
-          </nav>
-          <h1 className="text-3xl font-bold mb-6">Messages</h1>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="mb-4">
-              <textarea
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message..."
-                className="w-full p-2 border rounded"
-              />
-              <button
-                onClick={sendMessage}
-                className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              >
-                Send
-              </button>
+        <div className="min-h-screen">
+          <nav className="navbar fixed top-0 left-0 w-full p-4 z-10">
+            <div className="max-w-6xl mx-auto flex justify-between items-center">
+              <h1 className="text-2xl font-bold text-white">FreelanceFlow AI</h1>
+              <ul className="flex space-x-6 text-white">
+                <li><Link to="/" className="hover:text-yellow-300"><i className="fas fa-home mr-1"></i>Dashboard</Link></li>
+                <li><Link to="/gigs" className="hover:text-yellow-300"><i className="fas fa-briefcase mr-1"></i>Gig Matches</Link></li>
+                <li><Link to="/messages" className="hover:text-yellow-300"><i className="fas fa-envelope mr-1"></i>Messages</Link></li>
+                <li><Link to="/payments" className="hover:text-yellow-300"><i className="fas fa-wallet mr-1"></i>Payments</Link></li>
+              </ul>
             </div>
-            {messages.length ? (
-              messages.map((msg) => (
-                <div key={msg.id} className="border-b py-4">
-                  <p><strong>From:</strong> {msg.from}</p>
-                  <p><strong>Message:</strong> {msg.text}</p>
-                  <p><strong>Time:</strong> {msg.timestamp}</p>
-                </div>
-              ))
-            ) : (
-              <p>No messages yet.</p>
-            )}
+          </nav>
+          <div className="max-w-6xl mx-auto pt-24 p-6">
+            <h1 className="text-3xl font-bold mb-8 text-white">Messages</h1>
+            <div className="bg-white rounded-2xl shadow-xl p-6 card">
+              <div className="mb-4">
+                <textarea
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={sendMessage}
+                  className="mt-2 bg-blue-500 text-white px-4 py-3 rounded-lg btn hover:bg-blue-600"
+                >
+                  <i className="fas fa-paper-plane mr-2"></i>Send
+                </button>
+              </div>
+              {messages.length ? (
+                messages.map((msg) => (
+                  <div key={msg.id} className="border-b py-4">
+                    <p className="text-gray-800"><strong>From:</strong> {msg.from}</p>
+                    <p className="text-gray-800"><strong>Message:</strong> {msg.text}</p>
+                    <p className="text-gray-800"><strong>Time:</strong> {msg.timestamp}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-600">No messages yet.</p>
+              )}
+            </div>
           </div>
         </div>
       );
     }
 
-    // Payments Component (Still Mock, Not Using Firestore Yet)
+    // Payments Component
     function Payments({ user }) {
       const [transactions, setTransactions] = useState([
         { id: 1, gig: "Website Design", amount: 1000, status: "Completed", date: "2025-04-28" },
@@ -506,29 +635,34 @@
       ]);
 
       return (
-        <div className="max-w-4xl mx-auto p-6">
-          <nav className="bg-blue-500 p-4 mb-6 rounded-lg">
-            <ul className="flex space-x-6 text-white">
-              <li><Link to="/" className="hover:underline">Dashboard</Link></li>
-              <li><Link to="/gigs" className="hover:underline">Gig Matches</Link></li>
-              <li><Link to="/messages" className="hover:underline">Messages</Link></li>
-              <li><Link to="/payments" className="hover:underline">Payments</Link></li>
-            </ul>
+        <div className="min-h-screen">
+          <nav className="navbar fixed top-0 left-0 w-full p-4 z-10">
+            <div className="max-w-6xl mx-auto flex justify-between items-center">
+              <h1 className="text-2xl font-bold text-white">FreelanceFlow AI</h1>
+              <ul className="flex space-x-6 text-white">
+                <li><Link to="/" className="hover:text-yellow-300"><i className="fas fa-home mr-1"></i>Dashboard</Link></li>
+                <li><Link to="/gigs" className="hover:text-yellow-300"><i className="fas fa-briefcase mr-1"></i>Gig Matches</Link></li>
+                <li><Link to="/messages" className="hover:text-yellow-300"><i className="fas fa-envelope mr-1"></i>Messages</Link></li>
+                <li><Link to="/payments" className="hover:text-yellow-300"><i className="fas fa-wallet mr-1"></i>Payments</Link></li>
+              </ul>
+            </div>
           </nav>
-          <h1 className="text-3xl font-bold mb-6">Payments</h1>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            {transactions.length ? (
-              transactions.map((tx) => (
-                <div key={tx.id} className="border-b py-4">
-                  <p><strong>Gig:</strong> {tx.gig}</p>
-                  <p><strong>Amount:</strong> ${tx.amount}</p>
-                  <p><strong>Status:</strong> {tx.status}</p>
-                  <p><strong>Date:</strong> {tx.date}</p>
-                </div>
-              ))
-            ) : (
-              <p>No transactions yet.</p>
-            )}
+          <div className="max-w-6xl mx-auto pt-24 p-6">
+            <h1 className="text-3xl font-bold mb-8 text-white">Payments</h1>
+            <div className="bg-white rounded-2xl shadow-xl p-6 card">
+              {transactions.length ? (
+                transactions.map((tx) => (
+                  <div key={tx.id} className="border-b py-4">
+                    <p className="text-gray-800"><strong>Gig:</strong> {tx.gig}</p>
+                    <p className="text-gray-800"><strong>Amount:</strong> ${tx.amount}</p>
+                    <p className="text-gray-800"><strong>Status:</strong> {tx.status}</p>
+                    <p className="text-gray-800"><strong>Date:</strong> {tx.date}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-600">No transactions yet.</p>
+              )}
+            </div>
           </div>
         </div>
       );
