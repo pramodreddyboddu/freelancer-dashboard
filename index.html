@@ -8,9 +8,10 @@
   <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.24.6/babel.min.js"></script>
   <script src="https://unpkg.com/react-router-dom@6.26.1/dist/umd/react-router-dom.development.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+  <!-- Use Firebase compatibility scripts to avoid ES module issues -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -124,29 +125,29 @@
       const [isSignUp, setIsSignUp] = useState(false);
       const [email, setEmail] = useState("");
       const [password, setPassword] = useState("");
-OA      const [name, setName] = useState("");
-OA      const [error, setError] = useState("");
-OA
-OA      const handleSignUp = () => {
-        auth.createUserWithEmailAndPassword(email, password)
-OA          .then((userCredential) => {
-            return userCredential.user.updateProfile({
-OA              displayName: name
-            });
-OA          })
-OAOA          .then(() => {
-            setError("");
-OAOA          })
-OA          .catch((error) => {
-OAOAOAOA            setError(error.message);
-OAOA          });
-OAOAOA      };
+      const [name, setName] = useState("");
+      const [error, setError] = useState("");
 
-OA      const handleSignIn = () => {
-OAOA        auth.signInWithEmailAndPassword(email, password)
+      const handleSignUp = () => {
+        auth.createUserWithEmailAndPassword(email, password)
+          .then((userCredential) => {
+            return userCredential.user.updateProfile({
+              displayName: name
+            });
+          })
           .then(() => {
-OA            setError("");
-OA          })
+            setError("");
+          })
+          .catch((error) => {
+            setError(error.message);
+          });
+      };
+
+      const handleSignIn = () => {
+        auth.signInWithEmailAndPassword(email, password)
+          .then(() => {
+            setError("");
+          })
           .catch((error) => {
             setError(error.message);
           });
