@@ -3,35 +3,59 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Freelancer Dashboard</title>
+  <title>FreelanceFlow AI</title>
   <script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.24.6/babel.min.js"></script>
+  <script src="https://unpkg.com/react-router-dom@6.26.1/dist/umd/react-router-dom.development.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
   <div id="root"></div>
   <script type="text/babel">
     const { useState, useEffect } = React;
+    const { BrowserRouter, Route, Routes, Link, useNavigate } = ReactRouterDOM;
+
+    // Firebase Configuration (Replace with your Firebase config)
+    const firebaseConfig = {
+      apiKey: "AIzaSyB91TDRW-yw-ZXJmK7M2itwIAIFNOGJTEs",
+      authDomain: "freelancerdashboard-ca55a.firebaseapp.com",
+      projectId: "freelancerdashboard-ca55a",
+      storageBucket: "freelancerdashboard-ca55a.firebasestorage.app",
+      messagingSenderId: "371513193298",
+      appId: "1:371513193298:web:75745abaabee7c2d75008b",
+      measurementId: "G-GKNZWEJJ8Q"
+    };
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
     // Mock AI pitch generator
     const generateAIPitch = (skills, gigDetails) => {
       return `Hi, I'm a skilled freelancer specializing in ${skills.join(", ")}. I'm excited to offer my services for your ${gigDetails.projectType} project with a budget of $${gigDetails.budget}. My expertise ensures high-quality delivery tailored to your needs. Let's collaborate to bring your vision to life!`;
     };
 
-    // Main App Component
+    // Main App Component with Routing
     function App() {
       const [user, setUser] = useState(null);
       const [isSignUp, setIsSignUp] = useState(true);
 
       return (
-        <div className="min-h-screen bg-gray-100">
-          {user ? (
-            <Dashboard user={user} setUser={setUser} />
-          ) : (
-            <AuthForm isSignUp={isSignUp} setIsSignUp={setIsSignUp} setUser={setUser} />
-          )}
-        </div>
+        <BrowserRouter>
+          <div className="min-h-screen bg-gray-100">
+            {user ? (
+              <Routes>
+                <Route path="/" element={<Dashboard user={user} setUser={setUser} />} />
+                <Route path="/gigs" element={<GigMatches user={user} />} />
+                <Route path="/messages" element={<Messages user={user} />} />
+                <Route path="/payments" element={<Payments user={user} />} />
+              </Routes>
+            ) : (
+              <AuthForm isSignUp={isSignUp} setIsSignUp={setIsSignUp} setUser={setUser} />
+            )}
+          </div>
+        </BrowserRouter>
       );
     }
 
@@ -43,7 +67,6 @@
 
       const handleSubmit = (e) => {
         e.preventDefault();
-        // Mock authentication
         setUser({ email, name: isSignUp ? name : email.split("@")[0], skills: [], gigs: [] });
       };
 
@@ -103,13 +126,32 @@
       );
     }
 
-    // Dashboard Component
+    // Dashboard Component (Updated with Firestore for Portfolio)
     function Dashboard({ user, setUser }) {
       const [skills, setSkills] = useState(user.skills);
       const [newSkill, setNewSkill] = useState("");
       const [gigDetails, setGigDetails] = useState({ projectType: "", budget: "" });
       const [pitch, setPitch] = useState("");
       const [gigs, setGigs] = useState(user.gigs);
+      const [portfolio, setPortfolio] = useState([]);
+      const [newPortfolioItem, setNewPortfolioItem] = useState({ title: "", description: "" });
+
+      useEffect(() => {
+        // Fetch portfolio items from Firestore
+        db.collection("portfolios")
+          .where("userEmail", "==", user.email)
+          .get()
+          .then((querySnapshot) => {
+            const items = [];
+            querySnapshot.forEach((doc) => {
+              items.push({ id: doc.id, ...doc.data() });
+            });
+            setPortfolio(items);
+          })
+          .catch((error) => {
+            console.error("Error fetching portfolio: ", error);
+          });
+      }, [user.email]);
 
       const addSkill = () => {
         if (newSkill && !skills.includes(newSkill)) {
@@ -135,21 +177,51 @@
         }
       };
 
+      const addPortfolioItem = () => {
+        if (newPortfolioItem.title && newPortfolioItem.description) {
+          const portfolioItem = {
+            userEmail: user.email,
+            title: newPortfolioItem.title,
+            description: newPortfolioItem.description,
+            createdAt: new Date().toISOString()
+          };
+          db.collection("portfolios")
+            .add(portfolioItem)
+            .then((docRef) => {
+              setPortfolio([...portfolio, { id: docRef.id, ...portfolioItem }]);
+              setNewPortfolioItem({ title: "", description: "" });
+            })
+            .catch((error) => {
+              console.error("Error adding portfolio item: ", error);
+            });
+        }
+      };
+
       const logout = () => {
         setUser(null);
       };
 
       return (
         <div className="max-w-4xl mx-auto p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold">Welcome, {user.name}</h1>
-            <button
-              onClick={logout}
-              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-            >
-              Logout
-            </button>
-          </div>
+          {/* Navigation Bar */}
+          <nav className="bg-blue-500 p-4 mb-6 rounded-lg">
+            <ul className="flex space-x-6 text-white">
+              <li><Link to="/" className="hover:underline">Dashboard</Link></li>
+              <li><Link to="/gigs" className="hover:underline">Gig Matches</Link></li>
+              <li><Link to="/messages" className="hover:underline">Messages</Link></li>
+              <li><Link to="/payments" className="hover:underline">Payments</Link></li>
+              <li>
+                <button
+                  onClick={logout}
+                  className="bg-red-500 px-4 py-2 rounded hover:bg-red-600"
+                >
+                  Logout
+                </button>
+              </li>
+            </ul>
+          </nav>
+
+          <h1 className="text-3xl font-bold mb-6">Welcome to FreelanceFlow AI, {user.name}</h1>
 
           {/* Skills Section */}
           <div className="bg-white p-6 rounded-lg shadow-md mb-6">
@@ -233,7 +305,7 @@
           )}
 
           {/* Saved Gigs Section */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
             <h2 className="text-xl font-semibold mb-4">Your Gigs</h2>
             {gigs.length ? (
               gigs.map((gig, index) => (
@@ -245,6 +317,217 @@
               ))
             ) : (
               <p>No gigs saved yet.</p>
+            )}
+          </div>
+
+          {/* Portfolio Section */}
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold mb-4">Your Portfolio</h2>
+            <div className="mb-4">
+              <label className="block text-gray-700">Project Title</label>
+              <input
+                type="text"
+                value={newPortfolioItem.title}
+                onChange={(e) =>
+                  setNewPortfolioItem({ ...newPortfolioItem, title: e.target.value })
+                }
+                placeholder="e.g., E-commerce Website"
+                className="w-full p-2 border rounded mb-2"
+              />
+              <label className="block text-gray-700">Description</label>
+              <textarea
+                value={newPortfolioItem.description}
+                onChange={(e) =>
+                  setNewPortfolioItem({ ...newPortfolioItem, description: e.target.value })
+                }
+                placeholder="e.g., Built a responsive e-commerce site with React and Firebase."
+                className="w-full p-2 border rounded"
+              />
+              <button
+                onClick={addPortfolioItem}
+                className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                Add to Portfolio
+              </button>
+            </div>
+            {portfolio.length ? (
+              portfolio.map((item, index) => (
+                <div key={index} className="border-b py-4">
+                  <p><strong>Title:</strong> {item.title}</p>
+                  <p><strong>Description:</strong> {item.description}</p>
+                </div>
+              ))
+            ) : (
+              <p>No portfolio items yet.</p>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Gig Matches Component (Using Firestore)
+    function GigMatches({ user }) {
+      const [availableGigs, setAvailableGigs] = useState([]);
+
+      useEffect(() => {
+        db.collection("gigs").get().then((querySnapshot) => {
+          const gigs = [];
+          querySnapshot.forEach((doc) => {
+            gigs.push({ id: doc.id, ...doc.data() });
+          });
+          const matchedGigs = gigs.filter(gig =>
+            gig.skills.some(skill => user.skills.includes(skill))
+          );
+          setAvailableGigs(matchedGigs);
+        }).catch((error) => {
+          console.error("Error fetching gigs: ", error);
+        });
+      }, [user.skills]);
+
+      return (
+        <div className="max-w-4xl mx-auto p-6">
+          <nav className="bg-blue-500 p-4 mb-6 rounded-lg">
+            <ul className="flex space-x-6 text-white">
+              <li><Link to="/" className="hover:underline">Dashboard</Link></li>
+              <li><Link to="/gigs" className="hover:underline">Gig Matches</Link></li>
+              <li><Link to="/messages" className="hover:underline">Messages</Link></li>
+              <li><Link to="/payments" className="hover:underline">Payments</Link></li>
+            </ul>
+          </nav>
+          <h1 className="text-3xl font-bold mb-6">Gig Matches</h1>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            {availableGigs.length ? (
+              availableGigs.map((gig) => (
+                <div key={gig.id} className="border-b py-4">
+                  <p><strong>Title:</strong> {gig.title}</p>
+                  <p><strong>Budget:</strong> ${gig.budget}</p>
+                  <p><strong>Required Skills:</strong> {gig.skills.join(", ")}</p>
+                  <button className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Apply
+                  </button>
+                </div>
+              ))
+            ) : (
+              <p>No matching gigs found. Add more skills to improve your matches!</p>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Messages Component (Using Firestore)
+    function Messages({ user }) {
+      const [messages, setMessages] = useState([]);
+      const [newMessage, setNewMessage] = useState("");
+
+      useEffect(() => {
+        db.collection("messages")
+          .where("to", "==", user.email)
+          .get()
+          .then((querySnapshot) => {
+            const fetchedMessages = [];
+            querySnapshot.forEach((doc) => {
+              fetchedMessages.push({ id: doc.id, ...doc.data() });
+            });
+            setMessages(fetchedMessages);
+          })
+          .catch((error) => {
+            console.error("Error fetching messages: ", error);
+          });
+      }, [user.email]);
+
+      const sendMessage = () => {
+        if (newMessage) {
+          const message = {
+            from: user.email,
+            to: "Client A", // Mock recipient (in a real app, this would be dynamic)
+            text: newMessage,
+            timestamp: new Date().toISOString()
+          };
+          db.collection("messages")
+            .add(message)
+            .then((docRef) => {
+              setMessages([...messages, { id: docRef.id, ...message }]);
+              setNewMessage("");
+            })
+            .catch((error) => {
+              console.error("Error sending message: ", error);
+            });
+        }
+      };
+
+      return (
+        <div className="max-w-4xl mx-auto p-6">
+          <nav className="bg-blue-500 p-4 mb-6 rounded-lg">
+            <ul className="flex space-x-6 text-white">
+              <li><Link to="/" className="hover:underline">Dashboard</Link></li>
+              <li><Link to="/gigs" className="hover:underline">Gig Matches</Link></li>
+              <li><Link to="/messages" className="hover:underline">Messages</Link></li>
+              <li><Link to="/payments" className="hover:underline">Payments</Link></li>
+            </ul>
+          </nav>
+          <h1 className="text-3xl font-bold mb-6">Messages</h1>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="mb-4">
+              <textarea
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type a message..."
+                className="w-full p-2 border rounded"
+              />
+              <button
+                onClick={sendMessage}
+                className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                Send
+              </button>
+            </div>
+            {messages.length ? (
+              messages.map((msg) => (
+                <div key={msg.id} className="border-b py-4">
+                  <p><strong>From:</strong> {msg.from}</p>
+                  <p><strong>Message:</strong> {msg.text}</p>
+                  <p><strong>Time:</strong> {msg.timestamp}</p>
+                </div>
+              ))
+            ) : (
+              <p>No messages yet.</p>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Payments Component (Still Mock, Not Using Firestore Yet)
+    function Payments({ user }) {
+      const [transactions, setTransactions] = useState([
+        { id: 1, gig: "Website Design", amount: 1000, status: "Completed", date: "2025-04-28" },
+        { id: 2, gig: "Logo Design", amount: 300, status: "Pending", date: "2025-04-29" }
+      ]);
+
+      return (
+        <div className="max-w-4xl mx-auto p-6">
+          <nav className="bg-blue-500 p-4 mb-6 rounded-lg">
+            <ul className="flex space-x-6 text-white">
+              <li><Link to="/" className="hover:underline">Dashboard</Link></li>
+              <li><Link to="/gigs" className="hover:underline">Gig Matches</Link></li>
+              <li><Link to="/messages" className="hover:underline">Messages</Link></li>
+              <li><Link to="/payments" className="hover:underline">Payments</Link></li>
+            </ul>
+          </nav>
+          <h1 className="text-3xl font-bold mb-6">Payments</h1>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            {transactions.length ? (
+              transactions.map((tx) => (
+                <div key={tx.id} className="border-b py-4">
+                  <p><strong>Gig:</strong> {tx.gig}</p>
+                  <p><strong>Amount:</strong> ${tx.amount}</p>
+                  <p><strong>Status:</strong> {tx.status}</p>
+                  <p><strong>Date:</strong> {tx.date}</p>
+                </div>
+              ))
+            ) : (
+              <p>No transactions yet.</p>
             )}
           </div>
         </div>
