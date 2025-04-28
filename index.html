@@ -47,6 +47,11 @@
       color: white;
       font-weight: 600;
     }
+    @media (max-width: 640px) {
+      .grid-cols-1 md:grid-cols-2 {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -68,16 +73,16 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // Mock AI pitch generator
+    // Mock AI pitch generator (OpenAI placeholder)
     const generateAIPitch = (skills, gigDetails) => {
-      return `Hi, I'm a skilled freelancer specializing in ${skills.join(", ")}. I'm excited to offer my services for your ${gigDetails.projectType} project with a budget of $${gigDetails.budget}. My expertise ensures high-quality delivery tailored to your needs. Let's collaborate to bring your vision to life!`;
+      return `Hi, I'm a skilled freelancer specializing in ${skills}. I'm excited to offer my services for your ${gigDetails.projectType} project with a budget of $${gigDetails.budget}. My expertise ensures high-quality delivery tailored to your needs. Let's collaborate to bring your vision to life!`;
     };
 
     // Main App Component with State-Based Navigation
     function App() {
       const [user, setUser] = useState(null);
       const [loading, setLoading] = useState(true);
-      const [currentPage, setCurrentPage] = useState("auth"); // State to manage current page
+      const [currentPage, setCurrentPage] = useState("auth");
 
       useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
@@ -85,7 +90,7 @@
             setUser({
               email: firebaseUser.email,
               name: firebaseUser.displayName || firebaseUser.email.split("@")[0],
-              skills: [],
+              skills: "",
               gigs: []
             });
             setCurrentPage("dashboard");
@@ -269,74 +274,48 @@
       );
     }
 
-    // Dashboard Component
+    // Dashboard Component (MVP Focus: Pitch Generation)
     function Dashboard({ user }) {
       const [skills, setSkills] = useState(user.skills);
-      const [newSkill, setNewSkill] = useState("");
       const [gigDetails, setGigDetails] = useState({ projectType: "", budget: "" });
       const [pitch, setPitch] = useState("");
       const [gigs, setGigs] = useState(user.gigs);
-      const [portfolio, setPortfolio] = useState([]);
-      const [newPortfolioItem, setNewPortfolioItem] = useState({ title: "", description: "" });
-
-      useEffect(() => {
-        db.collection("portfolios")
-          .where("userEmail", "==", user.email)
-          .get()
-          .then((querySnapshot) => {
-            const items = [];
-            querySnapshot.forEach((doc) => {
-              items.push({ id: doc.id, ...doc.data() });
-            });
-            setPortfolio(items);
-          })
-          .catch((error) => {
-            console.error("Error fetching portfolio: ", error);
-          });
-      }, [user.email]);
-
-      const addSkill = () => {
-        if (newSkill && !skills.includes(newSkill)) {
-          setSkills([...skills, newSkill]);
-          setNewSkill("");
-        }
-      };
 
       const generatePitch = () => {
-        if (skills.length && gigDetails.projectType && gigDetails.budget) {
+        if (skills && gigDetails.projectType && gigDetails.budget) {
           const newPitch = generateAIPitch(skills, gigDetails);
           setPitch(newPitch);
         } else {
-          alert("Please add skills and complete gig details.");
+          alert("Please fill in all fields to generate a pitch.");
         }
       };
 
       const approvePitch = () => {
         if (pitch) {
-          setGigs([...gigs, { ...gigDetails, pitch }]);
-          setGigDetails({ projectType: "", budget: "" });
-          setPitch("");
+          const newGig = { ...gigDetails, pitch };
+          setGigs([...gigs, newGig]);
+          // Save to Firestore
+          db.collection("gigs")
+            .add({
+              userEmail: user.email,
+              ...newGig,
+              createdAt: new Date().toISOString()
+            })
+            .then(() => {
+              setPitch("");
+            })
+            .catch((error) => {
+              console.error("Error saving gig: ", error);
+            });
         }
       };
 
-      const addPortfolioItem = () => {
-        if (newPortfolioItem.title && newPortfolioItem.description) {
-          const portfolioItem = {
-            userEmail: user.email,
-            title: newPortfolioItem.title,
-            description: newPortfolioItem.description,
-            createdAt: new Date().toISOString()
-          };
-          db.collection("portfolios")
-            .add(portfolioItem)
-            .then((docRef) => {
-              setPortfolio([...portfolio, { id: docRef.id, ...portfolioItem }]);
-              setNewPortfolioItem({ title: "", description: "" });
-            })
-            .catch((error) => {
-              console.error("Error adding portfolio item: ", error);
-            });
-        }
+      const createCalendarEvent = () => {
+        // Mock Google Calendar link for MVP
+        const eventTitle = encodeURIComponent(`Follow up on ${gigDetails.projectType}`);
+        const eventDetails = encodeURIComponent(pitch);
+        const eventDate = encodeURIComponent(new Date().toISOString().split("T")[0].replace(/-/g, ""));
+        return `https://calendar.google.com/calendar/r/eventedit?text=${eventTitle}&details=${eventDetails}&dates=${eventDate}/${eventDate}`;
       };
 
       return (
@@ -353,39 +332,19 @@
             </div>
           </div>
 
-          {/* Skills Section */}
+          {/* Pitch Generation Section */}
           <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 card">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800"><i className="fas fa-star mr-2 text-yellow-500"></i>Your Skills</h2>
-            <div className="flex mb-4">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800"><i className="fas fa-robot mr-2 text-blue-500"></i>Generate a Pitch</h2>
+            <div className="mb-4">
+              <label className="block text-gray-700 font-medium mb-2">Skills</label>
               <input
                 type="text"
-                value={newSkill}
-                onChange={(e) => setNewSkill(e.target.value)}
-                placeholder="e.g., Web Development"
-                className="flex-1 p-3 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={skills}
+                onChange={(e) => setSkills(e.target.value)}
+                placeholder="e.g., graphic design"
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <button
-                onClick={addSkill}
-                className="bg-blue-500 text-white px-4 py-3 rounded-r-lg btn hover:bg-blue-600"
-              >
-                <i className="fas fa-plus mr-2"></i>Add
-              </button>
             </div>
-            <div className="flex flex-wrap gap-3">
-              {skills.map((skill, index) => (
-                <span
-                  key={index}
-                  className="bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium transition-all hover:bg-blue-200"
-                >
-                  {skill}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Gig Details Section */}
-          <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 card">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800"><i className="fas fa-tasks mr-2 text-green-500"></i>Add Gig Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-gray-700 font-medium mb-2">Project Type</label>
@@ -395,7 +354,7 @@
                   onChange={(e) =>
                     setGigDetails({ ...gigDetails, projectType: e.target.value })
                   }
-                  placeholder="e.g., Website Design"
+                  placeholder="e.g., logo project"
                   className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -407,36 +366,51 @@
                   onChange={(e) =>
                     setGigDetails({ ...gigDetails, budget: e.target.value })
                   }
-                  placeholder="e.g., 500"
+                  placeholder="e.g., 200"
                   className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
             <button
               onClick={generatePitch}
-              className="bg-green-500 text-white px-4 py-3 rounded-lg btn hover:bg-green-600"
+              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-3 rounded-lg btn hover:from-blue-600 hover:to-purple-700"
             >
-              <i className="fas fa-robot mr-2"></i>Generate AI Pitch
+              <i className="fas fa-robot mr-2"></i>Generate Pitch
             </button>
           </div>
 
-          {/* Pitch Section */}
+          {/* Pitch Display Section */}
           {pitch && (
             <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 card">
-              <h2 className="text-2xl font-semibold mb-4 text-gray-800"><i className="fas fa-file-alt mr-2 text-purple-500"></i>Generated Pitch</h2>
-              <p className="text-gray-700 mb-4">{pitch}</p>
-              <button
-                onClick={approvePitch}
-                className="bg-purple-500 text-white px-4 py-3 rounded-lg btn hover:bg-purple-600"
-              >
-                <i className="fas fa-check mr-2"></i>Approve & Save Pitch
-              </button>
+              <h2 className="text-2xl font-semibold mb-4 text-gray-800"><i className="fas fa-file-alt mr-2 text-purple-500"></i>Your Pitch</h2>
+              <textarea
+                value={pitch}
+                readOnly
+                className="w-full p-3 border rounded-lg bg-gray-100 text-gray-700 mb-4"
+                rows="5"
+              />
+              <div className="flex space-x-4">
+                <button
+                  onClick={approvePitch}
+                  className="bg-purple-500 text-white px-4 py-3 rounded-lg btn hover:bg-purple-600"
+                >
+                  <i className="fas fa-check mr-2"></i>Approve & Save
+                </button>
+                <a
+                  href={createCalendarEvent()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-green-500 text-white px-4 py-3 rounded-lg btn hover:bg-green-600"
+                >
+                  <i className="fas fa-calendar-alt mr-2"></i>Schedule Task
+                </a>
+              </div>
             </div>
           )}
 
-          {/* Saved Gigs Section */}
-          <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 card">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800"><i className="fas fa-briefcase mr-2 text-blue-500"></i>Your Gigs</h2>
+          {/* Saved Pitches Section */}
+          <div className="bg-white rounded-2xl shadow-xl p-6 card">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800"><i className="fas fa-briefcase mr-2 text-blue-500"></i>Saved Pitches</h2>
             {gigs.length ? (
               gigs.map((gig, index) => (
                 <div key={index} className="border-b py-4">
@@ -446,56 +420,14 @@
                 </div>
               ))
             ) : (
-              <p className="text-gray-600">No gigs saved yet.</p>
-            )}
-          </div>
-
-          {/* Portfolio Section */}
-          <div className="bg-white rounded-2xl shadow-xl p-6 card">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800"><i className="fas fa-folder-open mr-2 text-indigo-500"></i>Your Portfolio</h2>
-            <div className="mb-4">
-              <label className="block text-gray-700 font-medium mb-2">Project Title</label>
-              <input
-                type="text"
-                value={newPortfolioItem.title}
-                onChange={(e) =>
-                  setNewPortfolioItem({ ...newPortfolioItem, title: e.target.value })
-                }
-                placeholder="e.g., E-commerce Website"
-                className="w-full p-3 border rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <label className="block text-gray-700 font-medium mb-2">Description</label>
-              <textarea
-                value={newPortfolioItem.description}
-                onChange={(e) =>
-                  setNewPortfolioItem({ ...newPortfolioItem, description: e.target.value })
-                }
-                placeholder="e.g., Built a responsive e-commerce site with React and Firebase."
-                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={addPortfolioItem}
-                className="mt-2 bg-blue-500 text-white px-4 py-3 rounded-lg btn hover:bg-blue-600"
-              >
-                <i className="fas fa-plus mr-2"></i>Add to Portfolio
-              </button>
-            </div>
-            {portfolio.length ? (
-              portfolio.map((item, index) => (
-                <div key={index} className="border-b py-4">
-                  <p className="text-gray-800"><strong>Title:</strong> {item.title}</p>
-                  <p className="text-gray-800"><strong>Description:</strong> {item.description}</p>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-600">No portfolio items yet.</p>
+              <p className="text-gray-600">No pitches saved yet.</p>
             )}
           </div>
         </div>
       );
     }
 
-    // Gig Matches Component
+    // Gig Matches Component (Future Feature Placeholder)
     function GigMatches({ user }) {
       const [availableGigs, setAvailableGigs] = useState([]);
 
@@ -518,123 +450,31 @@
         <div className="max-w-6xl mx-auto pt-24 p-6">
           <h1 className="text-3xl font-bold mb-8 text-white">Gig Matches</h1>
           <div className="bg-white rounded-2xl shadow-xl p-6 card">
-            {availableGigs.length ? (
-              availableGigs.map((gig) => (
-                <div key={gig.id} className="border-b py-4">
-                  <p className="text-gray-800"><strong>Title:</strong> {gig.title}</p>
-                  <p className="text-gray-800"><strong>Budget:</strong> ${gig.budget}</p>
-                  <p className="text-gray-800"><strong>Required Skills:</strong> {gig.skills.join(", ")}</p>
-                  <button className="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg btn hover:bg-blue-600">
-                    <i className="fas fa-paper-plane mr-2"></i>Apply
-                  </button>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-600">No matching gigs found. Add more skills to improve your matches!</p>
-            )}
+            <p className="text-gray-600">Gig finding feature coming soon! This will scan platforms like Upwork and LinkedIn for gigs matching your skills.</p>
           </div>
         </div>
       );
     }
 
-    // Messages Component
+    // Messages Component (Future Feature Placeholder)
     function Messages({ user }) {
-      const [messages, setMessages] = useState([]);
-      const [newMessage, setNewMessage] = useState("");
-
-      useEffect(() => {
-        db.collection("messages")
-          .where("to", "==", user.email)
-          .get()
-          .then((querySnapshot) => {
-            const fetchedMessages = [];
-            querySnapshot.forEach((doc) => {
-              fetchedMessages.push({ id: doc.id, ...doc.data() });
-            });
-            setMessages(fetchedMessages);
-          })
-          .catch((error) => {
-            console.error("Error fetching messages: ", error);
-          });
-      }, [user.email]);
-
-      const sendMessage = () => {
-        if (newMessage) {
-          const message = {
-            from: user.email,
-            to: "Client A",
-            text: newMessage,
-            timestamp: new Date().toISOString()
-          };
-          db.collection("messages")
-            .add(message)
-            .then((docRef) => {
-              setMessages([...messages, { id: docRef.id, ...message }]);
-              setNewMessage("");
-            })
-            .catch((error) => {
-              console.error("Error sending message: ", error);
-            });
-        }
-      };
-
       return (
         <div className="max-w-6xl mx-auto pt-24 p-6">
           <h1 className="text-3xl font-bold mb-8 text-white">Messages</h1>
           <div className="bg-white rounded-2xl shadow-xl p-6 card">
-            <div className="mb-4">
-              <textarea
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message..."
-                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={sendMessage}
-                className="mt-2 bg-blue-500 text-white px-4 py-3 rounded-lg btn hover:bg-blue-600"
-              >
-                <i className="fas fa-paper-plane mr-2"></i>Send
-              </button>
-            </div>
-            {messages.length ? (
-              messages.map((msg) => (
-                <div key={msg.id} className="border-b py-4">
-                  <p className="text-gray-800"><strong>From:</strong> {msg.from}</p>
-                  <p className="text-gray-800"><strong>Message:</strong> {msg.text}</p>
-                  <p className="text-gray-800"><strong>Time:</strong> {msg.timestamp}</p>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-600">No messages yet.</p>
-            )}
+            <p className="text-gray-600">Messaging feature coming soon! This will allow you to communicate with clients directly.</p>
           </div>
         </div>
       );
     }
 
-    // Payments Component
+    // Payments Component (Future Feature Placeholder)
     function Payments({ user }) {
-      const [transactions, setTransactions] = useState([
-        { id: 1, gig: "Website Design", amount: 1000, status: "Completed", date: "2025-04-28" },
-        { id: 2, gig: "Logo Design", amount: 300, status: "Pending", date: "2025-04-29" }
-      ]);
-
       return (
         <div className="max-w-6xl mx-auto pt-24 p-6">
           <h1 className="text-3xl font-bold mb-8 text-white">Payments</h1>
           <div className="bg-white rounded-2xl shadow-xl p-6 card">
-            {transactions.length ? (
-              transactions.map((tx) => (
-                <div key={tx.id} className="border-b py-4">
-                  <p className="text-gray-800"><strong>Gig:</strong> {tx.gig}</p>
-                  <p className="text-gray-800"><strong>Amount:</strong> ${tx.amount}</p>
-                  <p className="text-gray-800"><strong>Status:</strong> {tx.status}</p>
-                  <p className="text-gray-800"><strong>Date:</strong> {tx.date}</p>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-600">No transactions yet.</p>
-            )}
+            <p className="text-gray-600">Payments and analytics feature coming soon! This will track your pitch success and revenue trends.</p>
           </div>
         </div>
       );
