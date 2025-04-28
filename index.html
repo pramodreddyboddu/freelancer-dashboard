@@ -16,40 +16,54 @@
   <style>
     body {
       font-family: 'Poppins', sans-serif;
-      background: linear-gradient(135deg, #6b7280 0%, #1f2937 100%);
-      color: #333;
+      background: #F9FAFB;
+      color: #1F2937;
     }
-    .navbar {
-      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    .sidebar {
+      background: #ffffff;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
     }
-    .navbar a, .navbar button {
+    .sidebar button {
       transition: all 0.3s ease;
     }
-    .navbar a:hover, .navbar button:hover {
-      transform: translateY(-2px);
+    .sidebar button:hover {
+      background: #E5E7EB;
+    }
+    .header {
+      background: linear-gradient(90deg, #2563EB, #7C3AED);
     }
     .card {
       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
     .card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     }
     .btn {
       transition: background-color 0.3s ease, transform 0.2s ease;
     }
     .btn:hover {
-      transform: scale(1.05);
+      transform: scale(1.03);
     }
     .avatar {
-      background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+      background: linear-gradient(45deg, #2563EB, #7C3AED);
       color: white;
       font-weight: 600;
     }
-    @media (max-width: 640px) {
-      .grid-cols-1 md:grid-cols-2 {
-        grid-template-columns: 1fr;
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+      }
+      .sidebar-content {
+        display: none;
+      }
+      .sidebar-content.open {
+        display: block;
+      }
+      .main-content {
+        margin-left: 0 !important;
       }
     }
   </style>
@@ -83,6 +97,7 @@
       const [user, setUser] = useState(null);
       const [loading, setLoading] = useState(true);
       const [currentPage, setCurrentPage] = useState("auth");
+      const [sidebarOpen, setSidebarOpen] = useState(false);
 
       useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
@@ -104,61 +119,102 @@
       }, []);
 
       if (loading) {
-        return <div className="text-center mt-10 text-white text-xl">Loading...</div>;
+        return (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center text-gray-600 text-xl">
+              <i className="fas fa-spinner fa-spin mr-2"></i>Loading...
+            </div>
+          </div>
+        );
       }
 
       const handleLogout = () => {
         auth.signOut().then(() => {
           setUser(null);
           setCurrentPage("auth");
+          setSidebarOpen(false);
         });
       };
 
       return (
-        <div className="min-h-screen">
+        <div className="min-h-screen flex">
           {user && (
-            <nav className="navbar fixed top-0 left-0 w-full p-4 z-10">
-              <div className="max-w-6xl mx-auto flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-white">FreelanceFlow AI</h1>
-                <ul className="flex space-x-6 text-white">
+            <div className={`sidebar fixed top-0 left-0 h-full w-64 md:w-64 ${sidebarOpen ? 'w-64' : 'w-16'} md:w-64 transition-all duration-300`}>
+              <div className="header p-4 flex justify-between items-center">
+                <h1 className={`text-xl font-bold text-white ${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>FreelanceFlow AI</h1>
+                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-white md:hidden">
+                  <i className={`fas ${sidebarOpen ? 'fa-times' : 'fa-bars'}`}></i>
+                </button>
+              </div>
+              <div className={`sidebar-content ${sidebarOpen ? 'open' : ''}`}>
+                <ul className="mt-4">
                   <li>
-                    <button onClick={() => setCurrentPage("dashboard")} className="hover:text-yellow-300">
-                      <i className="fas fa-home mr-1"></i>Dashboard
+                    <button
+                      onClick={() => setCurrentPage("dashboard")}
+                      className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "dashboard" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
+                    >
+                      <i className="fas fa-home"></i>
+                      <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Dashboard</span>
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => setCurrentPage("gigs")} className="hover:text-yellow-300">
-                      <i className="fas fa-briefcase mr-1"></i>Gig Matches
+                    <button
+                      onClick={() => setCurrentPage("gigs")}
+                      className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "gigs" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
+                    >
+                      <i className="fas fa-briefcase"></i>
+                      <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Gig Matches</span>
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => setCurrentPage("messages")} className="hover:text-yellow-300">
-                      <i className="fas fa-envelope mr-1"></i>Messages
+                    <button
+                      onClick={() => setCurrentPage("messages")}
+                      className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "messages" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
+                    >
+                      <i className="fas fa-envelope"></i>
+                      <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Messages</span>
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => setCurrentPage("payments")} className="hover:text-yellow-300">
-                      <i className="fas fa-wallet mr-1"></i>Payments
+                    <button
+                      onClick={() => setCurrentPage("payments")}
+                      className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "payments" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
+                    >
+                      <i className="fas fa-wallet"></i>
+                      <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Payments</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => setCurrentPage("portfolio")}
+                      className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "portfolio" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
+                    >
+                      <i className="fas fa-folder-open"></i>
+                      <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Portfolio</span>
                     </button>
                   </li>
                   <li>
                     <button
                       onClick={handleLogout}
-                      className="bg-red-500 px-4 py-2 rounded-lg hover:bg-red-600"
+                      className="w-full text-left p-4 flex items-center space-x-3 text-red-600 hover:bg-red-50"
                     >
-                      <i className="fas fa-sign-out-alt mr-1"></i>Logout
+                      <i className="fas fa-sign-out-alt"></i>
+                      <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Logout</span>
                     </button>
                   </li>
                 </ul>
               </div>
-            </nav>
+            </div>
           )}
 
-          {currentPage === "auth" && !user && <AuthForm setUser={setUser} setCurrentPage={setCurrentPage} />}
-          {currentPage === "dashboard" && user && <Dashboard user={user} />}
-          {currentPage === "gigs" && user && <GigMatches user={user} />}
-          {currentPage === "messages" && user && <Messages user={user} />}
-          {currentPage === "payments" && user && <Payments user={user} />}
+          <div className="flex-1 main-content" style={{ marginLeft: user ? (sidebarOpen || window.innerWidth >= 768 ? '16rem' : '4rem') : '0' }}>
+            {currentPage === "auth" && !user && <AuthForm setUser={setUser} setCurrentPage={setCurrentPage} />}
+            {currentPage === "dashboard" && user && <Dashboard user={user} />}
+            {currentPage === "gigs" && user && <GigMatches user={user} />}
+            {currentPage === "messages" && user && <Messages user={user} />}
+            {currentPage === "payments" && user && <Payments user={user} />}
+            {currentPage === "portfolio" && user && <Portfolio user={user} />}
+          </div>
         </div>
       );
     }
@@ -209,7 +265,7 @@
 
       return (
         <div className="min-h-screen flex items-center justify-center">
-          <div className="max-w-md w-full mx-auto p-8 bg-white rounded-2xl shadow-xl card">
+          <div className="max-w-md w-full mx-auto p-8 bg-white rounded-2xl shadow-md card">
             <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">
               {isSignUp ? "Join FreelanceFlow AI" : "Welcome Back"}
             </h2>
@@ -255,7 +311,7 @@
               </div>
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white p-3 rounded-lg btn hover:from-blue-600 hover:to-purple-700"
+                className="w-full bg-blue-600 text-white p-3 rounded-lg btn hover:bg-blue-700"
               >
                 {isSignUp ? "Sign Up" : "Sign In"}
               </button>
@@ -264,7 +320,7 @@
               {isSignUp ? "Already have an account?" : "Don't have an account?"}
               <button
                 onClick={() => setIsSignUp(!isSignUp)}
-                className="text-blue-500 ml-2 hover:underline focus:outline-none"
+                className="text-blue-600 ml-2 hover:underline focus:outline-none"
               >
                 {isSignUp ? "Sign In" : "Sign Up"}
               </button>
@@ -279,39 +335,59 @@
       const [skills, setSkills] = useState(user.skills);
       const [gigDetails, setGigDetails] = useState({ projectType: "", budget: "" });
       const [pitch, setPitch] = useState("");
-      const [gigs, setGigs] = useState(user.gigs);
+      const [gigs, setGigs] = useState([]);
+      const [saving, setSaving] = useState(false);
+      const [message, setMessage] = useState("");
+
+      // Fetch gigs from Firestore on mount
+      useEffect(() => {
+        db.collection("gigs")
+          .where("userEmail", "==", user.email)
+          .get()
+          .then((querySnapshot) => {
+            const fetchedGigs = [];
+            querySnapshot.forEach((doc) => {
+              fetchedGigs.push({ id: doc.id, ...doc.data() });
+            });
+            setGigs(fetchedGigs);
+          })
+          .catch((error) => {
+            console.error("Error fetching gigs: ", error);
+            setMessage({ type: "error", text: "Failed to load saved pitches." });
+          });
+      }, [user.email]);
 
       const generatePitch = () => {
         if (skills && gigDetails.projectType && gigDetails.budget) {
           const newPitch = generateAIPitch(skills, gigDetails);
           setPitch(newPitch);
+          setMessage("");
         } else {
-          alert("Please fill in all fields to generate a pitch.");
+          setMessage({ type: "error", text: "Please fill in all fields to generate a pitch." });
         }
       };
 
       const approvePitch = () => {
         if (pitch) {
-          const newGig = { ...gigDetails, pitch };
-          setGigs([...gigs, newGig]);
-          // Save to Firestore
+          setSaving(true);
+          const newGig = { userEmail: user.email, ...gigDetails, pitch, createdAt: new Date().toISOString() };
           db.collection("gigs")
-            .add({
-              userEmail: user.email,
-              ...newGig,
-              createdAt: new Date().toISOString()
-            })
-            .then(() => {
+            .add(newGig)
+            .then((docRef) => {
+              setGigs([...gigs, { id: docRef.id, ...newGig }]);
               setPitch("");
+              setSaving(false);
+              setMessage({ type: "success", text: "Pitch saved successfully!" });
             })
             .catch((error) => {
               console.error("Error saving gig: ", error);
+              setSaving(false);
+              setMessage({ type: "error", text: "Failed to save pitch. Please try again." });
             });
         }
       };
 
       const createCalendarEvent = () => {
-        // Mock Google Calendar link for MVP
         const eventTitle = encodeURIComponent(`Follow up on ${gigDetails.projectType}`);
         const eventDetails = encodeURIComponent(pitch);
         const eventDate = encodeURIComponent(new Date().toISOString().split("T")[0].replace(/-/g, ""));
@@ -319,24 +395,19 @@
       };
 
       return (
-        <div className="max-w-6xl mx-auto pt-24 p-6">
-          {/* Profile Card */}
-          <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 flex items-center space-x-6 card">
-            <div className="w-20 h-20 rounded-full avatar flex items-center justify-center text-2xl">
-              {user.name.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">Welcome, {user.name}</h1>
-              <p className="text-gray-600 mt-1"><i className="fas fa-envelope mr-2"></i>{user.email}</p>
-              <p className="text-gray-600"><i className="fas fa-briefcase mr-2"></i>{gigs.length} Gigs Completed</p>
-            </div>
-          </div>
+        <div className="p-8">
+          <h1 className="text-2xl font-bold text-gray-800 mb-6">Dashboard</h1>
 
           {/* Pitch Generation Section */}
-          <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 card">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800"><i className="fas fa-robot mr-2 text-blue-500"></i>Generate a Pitch</h2>
+          <div className="bg-white rounded-xl shadow-md p-6 mb-6 card">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-robot mr-2 text-blue-600"></i>Generate a Pitch</h2>
+            {message.text && (
+              <div className={`p-3 mb-4 rounded-lg ${message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                {message.text}
+              </div>
+            )}
             <div className="mb-4">
-              <label className="block text-gray-700 font-medium mb-2">Skills</label>
+              <label className="block text-gray-700 font-medium text-sm mb-2">Skills</label>
               <input
                 type="text"
                 value={skills}
@@ -347,7 +418,7 @@
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-gray-700 font-medium mb-2">Project Type</label>
+                <label className="block text-gray-700 font-medium text-sm mb-2">Project Type</label>
                 <input
                   type="text"
                   value={gigDetails.projectType}
@@ -359,7 +430,7 @@
                 />
               </div>
               <div>
-                <label className="block text-gray-700 font-medium mb-2">Budget ($)</label>
+                <label className="block text-gray-700 font-medium text-sm mb-2">Budget ($)</label>
                 <input
                   type="number"
                   value={gigDetails.budget}
@@ -373,7 +444,7 @@
             </div>
             <button
               onClick={generatePitch}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-3 rounded-lg btn hover:from-blue-600 hover:to-purple-700"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg btn hover:bg-blue-700"
             >
               <i className="fas fa-robot mr-2"></i>Generate Pitch
             </button>
@@ -381,26 +452,35 @@
 
           {/* Pitch Display Section */}
           {pitch && (
-            <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 card">
-              <h2 className="text-2xl font-semibold mb-4 text-gray-800"><i className="fas fa-file-alt mr-2 text-purple-500"></i>Your Pitch</h2>
+            <div className="bg-white rounded-xl shadow-md p-6 mb-6 card">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-file-alt mr-2 text-purple-600"></i>Your Pitch</h2>
               <textarea
                 value={pitch}
                 readOnly
                 className="w-full p-3 border rounded-lg bg-gray-100 text-gray-700 mb-4"
                 rows="5"
               />
-              <div className="flex space-x-4">
+              <div className="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
                 <button
                   onClick={approvePitch}
-                  className="bg-purple-500 text-white px-4 py-3 rounded-lg btn hover:bg-purple-600"
+                  disabled={saving}
+                  className={`bg-purple-600 text-white px-4 py-2 rounded-lg btn hover:bg-purple-700 flex items-center justify-center ${saving ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
-                  <i className="fas fa-check mr-2"></i>Approve & Save
+                  {saving ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin mr-2"></i>Saving...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-check mr-2"></i>Approve & Save
+                    </>
+                  )}
                 </button>
                 <a
                   href={createCalendarEvent()}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-green-500 text-white px-4 py-3 rounded-lg btn hover:bg-green-600"
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg btn hover:bg-green-700 flex items-center justify-center"
                 >
                   <i className="fas fa-calendar-alt mr-2"></i>Schedule Task
                 </a>
@@ -409,11 +489,11 @@
           )}
 
           {/* Saved Pitches Section */}
-          <div className="bg-white rounded-2xl shadow-xl p-6 card">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800"><i className="fas fa-briefcase mr-2 text-blue-500"></i>Saved Pitches</h2>
+          <div className="bg-white rounded-xl shadow-md p-6 card">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-briefcase mr-2 text-blue-600"></i>Saved Pitches</h2>
             {gigs.length ? (
-              gigs.map((gig, index) => (
-                <div key={index} className="border-b py-4">
+              gigs.map((gig) => (
+                <div key={gig.id} className="border-b py-4">
                   <p className="text-gray-800"><strong>Project Type:</strong> {gig.projectType}</p>
                   <p className="text-gray-800"><strong>Budget:</strong> ${gig.budget}</p>
                   <p className="text-gray-800"><strong>Pitch:</strong> {gig.pitch}</p>
@@ -427,29 +507,130 @@
       );
     }
 
-    // Gig Matches Component (Future Feature Placeholder)
-    function GigMatches({ user }) {
-      const [availableGigs, setAvailableGigs] = useState([]);
+    // Portfolio Component
+    function Portfolio({ user }) {
+      const [portfolio, setPortfolio] = useState([]);
+      const [newPortfolioItem, setNewPortfolioItem] = useState({ title: "", description: "" });
+      const [saving, setSaving] = useState(false);
+      const [message, setMessage] = useState("");
 
       useEffect(() => {
-        db.collection("gigs").get().then((querySnapshot) => {
-          const gigs = [];
-          querySnapshot.forEach((doc) => {
-            gigs.push({ id: doc.id, ...doc.data() });
+        db.collection("portfolios")
+          .where("userEmail", "==", user.email)
+          .get()
+          .then((querySnapshot) => {
+            const items = [];
+            querySnapshot.forEach((doc) => {
+              items.push({ id: doc.id, ...doc.data() });
+            });
+            setPortfolio(items);
+          })
+          .catch((error) => {
+            console.error("Error fetching portfolio: ", error);
+            setMessage({ type: "error", text: "Failed to load portfolio items." });
           });
-          const matchedGigs = gigs.filter(gig =>
-            gig.skills.some(skill => user.skills.includes(skill))
-          );
-          setAvailableGigs(matchedGigs);
-        }).catch((error) => {
-          console.error("Error fetching gigs: ", error);
-        });
-      }, [user.skills]);
+      }, [user.email]);
+
+      const addPortfolioItem = () => {
+        if (newPortfolioItem.title && newPortfolioItem.description) {
+          setSaving(true);
+          const portfolioItem = {
+            userEmail: user.email,
+            title: newPortfolioItem.title,
+            description: newPortfolioItem.description,
+            createdAt: new Date().toISOString()
+          };
+          db.collection("portfolios")
+            .add(portfolioItem)
+            .then((docRef) => {
+              setPortfolio([...portfolio, { id: docRef.id, ...portfolioItem }]);
+              setNewPortfolioItem({ title: "", description: "" });
+              setSaving(false);
+              setMessage({ type: "success", text: "Portfolio item added successfully!" });
+            })
+            .catch((error) => {
+              console.error("Error adding portfolio item: ", error);
+              setSaving(false);
+              setMessage({ type: "error", text: "Failed to add portfolio item." });
+            });
+        } else {
+          setMessage({ type: "error", text: "Please fill in all fields." });
+        }
+      };
 
       return (
-        <div className="max-w-6xl mx-auto pt-24 p-6">
-          <h1 className="text-3xl font-bold mb-8 text-white">Gig Matches</h1>
-          <div className="bg-white rounded-2xl shadow-xl p-6 card">
+        <div className="p-8">
+          <h1 className="text-2xl font-bold text-gray-800 mb-6">Portfolio</h1>
+          <div className="bg-white rounded-xl shadow-md p-6 mb-6 card">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-folder-open mr-2 text-indigo-600"></i>Add Portfolio Item</h2>
+            {message.text && (
+              <div className={`p-3 mb-4 rounded-lg ${message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                {message.text}
+              </div>
+            )}
+            <div className="mb-4">
+              <label className="block text-gray-700 font-medium text-sm mb-2">Project Title</label>
+              <input
+                type="text"
+                value={newPortfolioItem.title}
+                onChange={(e) =>
+                  setNewPortfolioItem({ ...newPortfolioItem, title: e.target.value })
+                }
+                placeholder="e.g., E-commerce Website"
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700 font-medium text-sm mb-2">Description</label>
+              <textarea
+                value={newPortfolioItem.description}
+                onChange={(e) =>
+                  setNewPortfolioItem({ ...newPortfolioItem, description: e.target.value })
+                }
+                placeholder="e.g., Built a responsive e-commerce site with React and Firebase."
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows="4"
+              />
+            </div>
+            <button
+              onClick={addPortfolioItem}
+              disabled={saving}
+              className={`bg-blue-600 text-white px-4 py-2 rounded-lg btn hover:bg-blue-700 flex items-center ${saving ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              {saving ? (
+                <>
+                  <i className="fas fa-spinner fa-spin mr-2"></i>Saving...
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-plus mr-2"></i>Add to Portfolio
+                </>
+              )}
+            </button>
+          </div>
+          <div className="bg-white rounded-xl shadow-md p-6 card">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-folder-open mr-2 text-indigo-600"></i>Your Portfolio</h2>
+            {portfolio.length ? (
+              portfolio.map((item) => (
+                <div key={item.id} className="border-b py-4">
+                  <p className="text-gray-800"><strong>Title:</strong> {item.title}</p>
+                  <p className="text-gray-800"><strong>Description:</strong> {item.description}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-600">No portfolio items yet.</p>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Gig Matches Component (Future Feature Placeholder)
+    function GigMatches({ user }) {
+      return (
+        <div className="p-8">
+          <h1 className="text-2xl font-bold text-gray-800 mb-6">Gig Matches</h1>
+          <div className="bg-white rounded-xl shadow-md p-6 card">
             <p className="text-gray-600">Gig finding feature coming soon! This will scan platforms like Upwork and LinkedIn for gigs matching your skills.</p>
           </div>
         </div>
@@ -459,9 +640,9 @@
     // Messages Component (Future Feature Placeholder)
     function Messages({ user }) {
       return (
-        <div className="max-w-6xl mx-auto pt-24 p-6">
-          <h1 className="text-3xl font-bold mb-8 text-white">Messages</h1>
-          <div className="bg-white rounded-2xl shadow-xl p-6 card">
+        <div className="p-8">
+          <h1 className="text-2xl font-bold text-gray-800 mb-6">Messages</h1>
+          <div className="bg-white rounded-xl shadow-md p-6 card">
             <p className="text-gray-600">Messaging feature coming soon! This will allow you to communicate with clients directly.</p>
           </div>
         </div>
@@ -471,9 +652,9 @@
     // Payments Component (Future Feature Placeholder)
     function Payments({ user }) {
       return (
-        <div className="max-w-6xl mx-auto pt-24 p-6">
-          <h1 className="text-3xl font-bold mb-8 text-white">Payments</h1>
-          <div className="bg-white rounded-2xl shadow-xl p-6 card">
+        <div className="p-8">
+          <h1 className="text-2xl font-bold text-gray-800 mb-6">Payments</h1>
+          <div className="bg-white rounded-xl shadow-md p-6 card">
             <p className="text-gray-600">Payments and analytics feature coming soon! This will track your pitch success and revenue trends.</p>
           </div>
         </div>
