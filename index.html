@@ -60,6 +60,23 @@
       background: rgba(0, 0, 0, 0.5);
       z-index: 40;
     }
+    .pitch-entry {
+      transition: background-color 0.3s ease;
+    }
+    .pitch-entry:hover {
+      background-color: #F1F5F9;
+    }
+    .pitch-text {
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    input::placeholder, textarea::placeholder {
+      color: #A1A1AA;
+      opacity: 1;
+    }
+    .input-error {
+      border-color: #EF4444 !important;
+    }
     @media (max-width: 768px) {
       .sidebar {
         width: 100%;
@@ -380,6 +397,7 @@
       const [gigs, setGigs] = useState([]);
       const [saving, setSaving] = useState(false);
       const [message, setMessage] = useState("");
+      const [errors, setErrors] = useState({ skills: false, projectType: false, budget: false });
 
       // Fetch gigs from Firestore on mount
       useEffect(() => {
@@ -399,8 +417,18 @@
           });
       }, [user.email]);
 
+      const validateInputs = () => {
+        const newErrors = {
+          skills: !skills,
+          projectType: !gigDetails.projectType,
+          budget: !gigDetails.budget
+        };
+        setErrors(newErrors);
+        return !newErrors.skills && !newErrors.projectType && !newErrors.budget;
+      };
+
       const generatePitch = () => {
-        if (skills && gigDetails.projectType && gigDetails.budget) {
+        if (validateInputs()) {
           const newPitch = generateAIPitch(skills, gigDetails);
           setPitch(newPitch);
           setMessage("");
@@ -429,6 +457,23 @@
         }
       };
 
+      const deletePitch = (gigId) => {
+        setSaving(true);
+        db.collection("gigs")
+          .doc(gigId)
+          .delete()
+          .then(() => {
+            setGigs(gigs.filter(gig => gig.id !== gigId));
+            setSaving(false);
+            setMessage({ type: "success", text: "Pitch deleted successfully!" });
+          })
+          .catch((error) => {
+            console.error("Error deleting gig: ", error);
+            setSaving(false);
+            setMessage({ type: "error", text: "Failed to delete pitch. Please try again." });
+          });
+      };
+
       const createCalendarEvent = () => {
         const eventTitle = encodeURIComponent(`Follow up on ${gigDetails.projectType}`);
         const eventDetails = encodeURIComponent(pitch);
@@ -449,19 +494,19 @@
               </div>
             )}
             <div className="mb-4">
-              <label className="block text-gray-700 font-medium text-sm mb-2">Skills</label>
+              <label className="block text-gray-700 font-medium text-base mb-2">Skills</label>
               <input
                 type="text"
                 value={skills}
                 onChange={(e) => setSkills(e.target.value)}
                 placeholder="e.g., graphic design"
-                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.skills ? "input-error" : ""}`}
                 aria-label="Skills"
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-gray-700 font-medium text-sm mb-2">Project Type</label>
+                <label className="block text-gray-700 font-medium text-base mb-2">Project Type</label>
                 <input
                   type="text"
                   value={gigDetails.projectType}
@@ -469,12 +514,12 @@
                     setGigDetails({ ...gigDetails, projectType: e.target.value })
                   }
                   placeholder="e.g., logo project"
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.projectType ? "input-error" : ""}`}
                   aria-label="Project Type"
                 />
               </div>
               <div>
-                <label className="block text-gray-700 font-medium text-sm mb-2">Budget ($)</label>
+                <label className="block text-gray-700 font-medium text-base mb-2">Budget ($)</label>
                 <input
                   type="number"
                   value={gigDetails.budget}
@@ -482,7 +527,7 @@
                     setGigDetails({ ...gigDetails, budget: e.target.value })
                   }
                   placeholder="e.g., 200"
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.budget ? "input-error" : ""}`}
                   aria-label="Budget"
                 />
               </div>
@@ -503,7 +548,7 @@
               <textarea
                 value={pitch}
                 readOnly
-                className="w-full p-3 border rounded-lg bg-gray-100 text-gray-700 mb-4"
+                className="w-full p-3 border rounded-lg bg-gray-100 text-gray-700 mb-4 pitch-text"
                 rows="5"
                 aria-label="Generated Pitch"
               />
@@ -542,10 +587,28 @@
             <h2 className="text-xl font-semibold text-gray-800 mb-4"><i className="fas fa-briefcase mr-2 text-blue-600"></i>Saved Pitches</h2>
             {gigs.length ? (
               gigs.map((gig) => (
-                <div key={gig.id} className="border-b py-4">
-                  <p className="text-gray-800"><strong>Project Type:</strong> {gig.projectType}</p>
-                  <p className="text-gray-800"><strong>Budget:</strong> ${gig.budget}</p>
-                  <p className="text-gray-800"><strong>Pitch:</strong> {gig.pitch}</p>
+                <div key={gig.id} className="pitch-entry border-b py-4 last:border-b-0">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-gray-800">
+                        <strong><i className="fas fa-briefcase mr-2 text-blue-600"></i>Project Type:</strong> <span className="text-gray-600">{gig.projectType}</span>
+                      </p>
+                      <p className="text-gray-800 mt-1">
+                        <strong><i className="fas fa-dollar-sign mr-2 text-green-600"></i>Budget:</strong> <span className="text-gray-600">${gig.budget}</span>
+                      </p>
+                      <p className="text-gray-800 mt-2">
+                        <strong><i className="fas fa-file-alt mr-2 text-purple-600"></i>Pitch:</strong> <span className="text-gray-600 pitch-text">{gig.pitch}</span>
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => deletePitch(gig.id)}
+                      disabled={saving}
+                      className="text-red-600 hover:text-red-800 flex items-center"
+                      aria-label="Delete Pitch"
+                    >
+                      <i className="fas fa-trash-alt"></i>
+                    </button>
+                  </div>
                 </div>
               ))
             ) : (
