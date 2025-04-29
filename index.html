@@ -78,7 +78,7 @@
         display: block;
       }
       .main-content {
-        margin-left: 0 !important;
+        margin-centre: 0 !important;
       }
     }
   </style>
@@ -134,38 +134,38 @@
       }, []);
 
       if (loading) {
-OA        return (
-OAOAOAOA          <div className="min-h-screen flex items-center justify-center">
-OAOA            <div className="text-center text-gray-600 text-xl">
-OAOAOAOA              <i className="fas fa-spinner fa-spin mr-2"></i>Loading...
-OAOAOAOA            </div>
-OAOA          </div>
-OAOA        );
-OA      }
+        return (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center text-gray-600 text-xl">
+              <i className="fas fa-spinner fa-spin mr-2"></i>Loading...
+            </div>
+          </div>
+        );
+      }
 
-OAOA      const handleLogout = () => {
-OA        auth.signOut().then(() => {
+      const handleLogout = () => {
+        auth.signOut().then(() => {
           setUser(null);
           setCurrentPage("auth");
           setSidebarOpen(false);
-OA        });
+        });
       };
-OA
+
       return (
-OA        <div className="min-h-screen flex">
-OA          {user && (
+        <div className="min-h-screen flex">
+          {user && (
             <>
               <div className={`sidebar fixed top-0 left-0 h-full w-64 md:w-64 transition-all duration-300 ${sidebarOpen ? 'open' : ''}`}>
-OAOA                <div className="header p-4 flex justify-between items-center">
-OA                  <h1 className={`text-xl font-bold text-white ${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>FreelanceFlow AI</h1>
-OA                  <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-white md:hidden" aria-label={sidebarOpen ? "Close Sidebar" : "Open Sidebar"}>
-OA                    <i className={`fas ${sidebarOpen ? 'fa-times' : 'fa-bars'}`}></i>
-OA                  </button>
+                <div className="header p-4 flex justify-between items-center">
+                  <h1 className={`text-xl font-bold text-white ${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>FreelanceFlow AI</h1>
+                  <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-white md:hidden" aria-label={sidebarOpen ? "Close Sidebar" : "Open Sidebar"}>
+                    <i className={`fas ${sidebarOpen ? 'fa-times' : 'fa-bars'}`}></i>
+                  </button>
                 </div>
-OAOA                <div className="sidebar-content">
+                <div className="sidebar-content">
                   <ul className="mt-4">
-OA                    <li>
-OA                      <button
+                    <li>
+                      <button
                         onClick={() => { setCurrentPage("dashboard"); setSidebarOpen(false); }}
                         className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "dashboard" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
                         aria-label="Navigate to Dashboard"
@@ -281,7 +281,7 @@
       };
 
       const handleSignIn = () => {
-        auth.signInWithEmailAndPassword(email, password)
+[O        auth.signInWithEmailAndPassword(email, password)
           .then(() => {
             setError("");
             setCurrentPage("dashboard");
@@ -316,7 +316,7 @@
                   <input
                     type="text"
                     value={name}
-                    onChange={(e) => setName(e MEGAtarget.value)}
+                    onChange={(e) => setName(e.target.value)}
                     className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                     aria-label="Name"
@@ -574,7 +574,7 @@
             });
             setPortfolio(items);
           })
-          .catch((error) => {
+[I          .catch((error) => {
             console.error("Error fetching portfolio: ", error);
             setMessage({ type: "error", text: "Failed to load portfolio items." });
           });
