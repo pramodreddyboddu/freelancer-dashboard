@@ -22,6 +22,7 @@
     .sidebar {
       background: #ffffff;
       box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+      z-index: 50;
     }
     .sidebar button {
       transition: all 0.3s ease;
@@ -50,16 +51,30 @@
       color: white;
       font-weight: 600;
     }
+    .backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 40;
+    }
     @media (max-width: 768px) {
       .sidebar {
         width: 100%;
         height: auto;
-        position: relative;
+        position: fixed;
+        top: 0;
+        left: 0;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-in-out;
+      }
+      .sidebar.open {
+        transform: translateX(0);
+        width: 75%;
       }
       .sidebar-content {
-        display: none;
-      }
-      .sidebar-content.open {
         display: block;
       }
       .main-content {
@@ -119,111 +134,116 @@
       }, []);
 
       if (loading) {
-        return (
-          <div className="min-h-screen flex items-center justify-center">
-            <div className="text-center text-gray-600 text-xl">
-              <i className="fas fa-spinner fa-spin mr-2"></i>Loading...
-            </div>
-          </div>
-        );
-      }
+OA        return (
+OAOAOAOA          <div className="min-h-screen flex items-center justify-center">
+OAOA            <div className="text-center text-gray-600 text-xl">
+OAOAOAOA              <i className="fas fa-spinner fa-spin mr-2"></i>Loading...
+OAOAOAOA            </div>
+OAOA          </div>
+OAOA        );
+OA      }
 
-      const handleLogout = () => {
-        auth.signOut().then(() => {
+OAOA      const handleLogout = () => {
+OA        auth.signOut().then(() => {
           setUser(null);
           setCurrentPage("auth");
           setSidebarOpen(false);
-        });
+OA        });
       };
-
+OA
       return (
-        <div className="min-h-screen flex">
-          {user && (
-            <div className={`sidebar fixed top-0 left-0 h-full w-64 md:w-64 ${sidebarOpen ? 'w-64' : 'w-16'} md:w-64 transition-all duration-300`}>
-              <div className="header p-4 flex justify-between items-center">
-                <h1 className={`text-xl font-bold text-white ${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>FreelanceFlow AI</h1>
-                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-white md:hidden">
-                  <i className={`fas ${sidebarOpen ? 'fa-times' : 'fa-bars'}`}></i>
-                </button>
+OA        <div className="min-h-screen flex">
+OA          {user && (
+            <>
+              <div className={`sidebar fixed top-0 left-0 h-full w-64 md:w-64 transition-all duration-300 ${sidebarOpen ? 'open' : ''}`}>
+OAOA                <div className="header p-4 flex justify-between items-center">
+OA                  <h1 className={`text-xl font-bold text-white ${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>FreelanceFlow AI</h1>
+OA                  <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-white md:hidden" aria-label={sidebarOpen ? "Close Sidebar" : "Open Sidebar"}>
+OA                    <i className={`fas ${sidebarOpen ? 'fa-times' : 'fa-bars'}`}></i>
+OA                  </button>
+                </div>
+OAOA                <div className="sidebar-content">
+                  <ul className="mt-4">
+OA                    <li>
+OA                      <button
+                        onClick={() => { setCurrentPage("dashboard"); setSidebarOpen(false); }}
+                        className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "dashboard" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
+                        aria-label="Navigate to Dashboard"
+                      >
+                        <i className="fas fa-home"></i>
+                        <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Dashboard</span>
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => { setCurrentPage("gigs"); setSidebarOpen(false); }}
+                        className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "gigs" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
+                        aria-label="Navigate to Gig Matches"
+                      >
+                        <i className="fas fa-briefcase"></i>
+                        <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Gig Matches</span>
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => { setCurrentPage("messages"); setSidebarOpen(false); }}
+                        className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "messages" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
+                        aria-label="Navigate to Messages"
+                      >
+                        <i className="fas fa-envelope"></i>
+                        <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Messages</span>
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => { setCurrentPage("payments"); setSidebarOpen(false); }}
+                        className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "payments" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
+                        aria-label="Navigate to Payments"
+                      >
+                        <i className="fas fa-wallet"></i>
+                        <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Payments</span>
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => { setCurrentPage("portfolio"); setSidebarOpen(false); }}
+                        className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "portfolio" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
+                        aria-label="Navigate to Portfolio"
+                      >
+                        <i className="fas fa-folder-open"></i>
+                        <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Portfolio</span>
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => { setCurrentPage("feedback"); setSidebarOpen(false); }}
+                        className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "feedback" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
+                        aria-label="Navigate to Feedback"
+                      >
+                        <i className="fas fa-comment"></i>
+                        <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Feedback</span>
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left p-4 flex items-center space-x-3 text-red-600 hover:bg-red-50"
+                        aria-label="Logout"
+                      >
+                        <i className="fas fa-sign-out-alt"></i>
+                        <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Logout</span>
+                      </button>
+                    </li>
+                  </ul>
+                </div>
               </div>
-              <div className={`sidebar-content ${sidebarOpen ? 'open' : ''}`}>
-                <ul className="mt-4">
-                  <li>
-                    <button
-                      onClick={() => setCurrentPage("dashboard")}
-                      className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "dashboard" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
-                      aria-label="Navigate to Dashboard"
-                    >
-                      <i className="fas fa-home"></i>
-                      <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Dashboard</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      onClick={() => setCurrentPage("gigs")}
-                      className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "gigs" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
-                      aria-label="Navigate to Gig Matches"
-                    >
-                      <i className="fas fa-briefcase"></i>
-                      <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Gig Matches</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      onClick={() => setCurrentPage("messages")}
-                      className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "messages" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
-                      aria-label="Navigate to Messages"
-                    >
-                      <i className="fas fa-envelope"></i>
-                      <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Messages</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      onClick={() => setCurrentPage("payments")}
-                      className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "payments" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
-                      aria-label="Navigate to Payments"
-                    >
-                      <i className="fas fa-wallet"></i>
-                      <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Payments</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      onClick={() => setCurrentPage("portfolio")}
-                      className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "portfolio" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
-                      aria-label="Navigate to Portfolio"
-                    >
-                      <i className="fas fa-folder-open"></i>
-                      <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Portfolio</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      onClick={() => setCurrentPage("feedback")}
-                      className={`w-full text-left p-4 flex items-center space-x-3 ${currentPage === "feedback" ? "bg-blue-100 text-blue-600" : "text-gray-600 hover:bg-blue-50"}`}
-                      aria-label="Navigate to Feedback"
-                    >
-                      <i className="fas fa-comment"></i>
-                      <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Feedback</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full text-left p-4 flex items-center space-x-3 text-red-600 hover:bg-red-50"
-                      aria-label="Logout"
-                    >
-                      <i className="fas fa-sign-out-alt"></i>
-                      <span className={`${sidebarOpen || window.innerWidth >= 768 ? 'block' : 'hidden'} md:block`}>Logout</span>
-                    </button>
-                  </li>
-                </ul>
-              </div>
-            </div>
+              {sidebarOpen && window.innerWidth < 768 && (
+                <div className="backdrop" onClick={() => setSidebarOpen(false)}></div>
+              )}
+            </>
           )}
 
-          <div className="flex-1 main-content" style={{ marginLeft: user ? (sidebarOpen || window.innerWidth >= 768 ? '16rem' : '4rem') : '0' }}>
+          <div className="flex-1 main-content" style={{ marginLeft: user && window.innerWidth >= 768 ? '16rem' : '0' }}>
             {currentPage === "auth" && !user && <AuthForm setUser={setUser} setCurrentPage={setCurrentPage} />}
             {currentPage === "dashboard" && user && <Dashboard user={user} />}
             {currentPage === "gigs" && user && <GigMatches user={user} />}
@@ -296,7 +316,7 @@
                   <input
                     type="text"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => setName(e MEGAtarget.value)}
                     className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                     aria-label="Name"
