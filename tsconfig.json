@@ -15,7 +15,9 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "baseUrl": "src"
+    "baseUrl": ".",       //  👈  Change to "."
+    "outDir": "./build",  //  👈  Add this
+    "rootDir": "."        //  👈  Change to "."
   },
-  "include": ["src"]
+  "include": ["src", "index.html"] //  👈  Include src/ and index.html
 }
